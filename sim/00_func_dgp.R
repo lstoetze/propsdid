@@ -6,14 +6,13 @@
 
 
 library(propsdid)
+library(tidyverse)
 
 
-
-simulateDGP_multi(K=4,tau = c(1,-2,0,0),additive = F)
 
 # Makes some plots
-df <- dpg(K=4,tau_val = c(1,-2,0,0),additive = F)
-library(tidyverse)
+df <- simulateDGP_multi(K=4,tau = c(0.25,-0.5,0,0),additive = F,ratiosd_GU = 0.1,
+                        T = 5, treated_n = 3)$dat
 df %>%
   group_by(treated,t,k) %>%
   summarise("mean_y" = mean(y)) %>%
@@ -23,22 +22,19 @@ df %>%
   theme_minimal()
 
 
-# library
-library(synthdidprop) # need to install from tar.tz
-
-
 setup <- panel.array(df)
-est <- synthdidprop::sc_estimate(setup$Y,setup$N0, setup$T0,
+est <- sc_estimate(setup$Y,setup$N0, setup$T0,
                    porp_dat=T,method="sdid")
 
-# Estimation -fixed effects
+summary(est)
 
-
-estmation_step  <- function(df){
+# Estimation step, Two-way Fixed Effect, SynDiD Separate, Prop Syn Did
+estmation_step  <- function(df, K=4){
 
   ate <- NULL
   tau.hat <- NULL
-  for(kth in 1:3){
+  
+  for(kth in 1:K){
     # Two-way fixed effects
     ate[kth]  <- coef(lm(y ~ d + as.factor(t) + as.factor(i), filter(df,k==kth)))["d"]
 
@@ -48,33 +44,31 @@ estmation_step  <- function(df){
       panel.matrices(.,outcome = "y",
                      unit = "i",time = "t",treatment = "d")
 
-    tau.hat[kth]  <- synthdidprop::synthdid_estimate(setup$Y, setup$N0, setup$T0)
+    tau.hat[kth]  <- sc_estimate(setup$Y,setup$N0, setup$T0,
+                                 method="sdid")
 
   }
 
   # Setup Array
   setup <- panel.array(df)
-  est_prop <- synthdidprop::sc_estimate(setup$Y,setup$N0, setup$T0,
+  est_prop <- sc_estimate(setup$Y,setup$N0, setup$T0,
                                    porp_dat=T,method="sdid")
 
   return(list("did"=ate, "sdid"=tau.hat, "sdid_prop"= c(est_prop)))
 
 }
 
-
-
 # Simulation
-
 Nrep <- 100
 res_est <- list()
 
 for(i in 1:Nrep){
 
   # Generate Data
-  df <- dpg(additive = F)
-
+  df <-  simulateDGP_multi(K=4,tau = c(0.25,-0.5,0,0),additive = F)$dat
+  
   # Estimate Models
-  res <- estmation_step(df)
+  res <- estmation_step(df, K = 4)
 
   res_est[[i]] <-  data.frame(do.call(rbind, res))
   res_est[[i]]$est_mean <- apply(res_est[[i]],1,mean)
@@ -82,16 +76,6 @@ for(i in 1:Nrep){
   rownames(res_est[[i]]) <- NULL
 
 }
-
-
-# Constraint
-reshape2::melt(res_mean)  %>%
-  ggplot() +
-  geom_histogram(aes(value)) +
-  facet_grid(~Var2) +
-  theme_minimal() +
-  xlab("Mean of Treatment Effects over Proportions") +
-  ylab("")
 
 
 
@@ -129,7 +113,8 @@ df_plot %>%
   reshape2::melt(.) %>%
   ggplot()  +
   geom_density(aes(value, color=est, fill=est), alpha=0.2) +
-  facet_wrap(variable ~.) +
+  geom_vline(xintercept=0, col="red", alpha=0.6) +
+  facet_wrap(variable ~., scales="free") +
   theme_minimal() +
   xlab("Estimate of ATE") +
   ylab("")
