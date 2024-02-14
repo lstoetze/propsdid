@@ -1,181 +1,164 @@
-#' Estimates the DGP parameters used in the placebo studies in Sections 3 and 5
-#' of the synthetic difference in differences paper. Described there in Section 3.1.1.
+#' Simulates panel data based on a latent factor model
 #'
-#' @param Y, an NxT matrix of outcomes
-#' @param assignment_vector, an Nx1 vector of treatment assignments
-#' @param rank, the rank of the estimated signal component L
-#' @return a list with elements F, M, Sigma, pi as described in Section 3.1.1
-#'         and an element ar_coef with the AR(2) model coefficients underlying the covariance Sigma
-#' @export estimate_dgp
-estimate_dgp = function(Y, assignment_vector, rank) {
-  N <- dim(Y)[1]
-  T <- dim(Y)[2]
-  overall_mean <- mean(Y)
-  overall_sd <- norm(Y - overall_mean,'f')/sqrt(N*T)
-  Y_norm <- (Y-overall_mean)/overall_sd
+#' @param N Integer, the total number of units in the study.
+#' @param T Integer, the total number of time periods.
+#' @param R Integer, the dimension of latent factors affecting both units and time periods.
+#' @param tau Numeric, the true treatment effect to be simulated across treated units.
+#' @param treated_n Integer, the number of units to be treated from the treatment start time onwards.
+#' @param treat_t Integer, the time point at which treatment starts, with all prior periods being pre-treatment.
+#' @param additive Logical, indicating whether the systematic component should be additive (`TRUE`) or multiplicative (`FALSE`).
+#'
+#' @return A list containing:
+#'         - `Y`: the outcome matrix with dimensions N x T, where outcomes for each unit and time period are simulated.
+#'         - `W`: the treatment assignment matrix with dimensions N x T, indicating treatment status for each unit and period based on the predefined logic.
+#'         - `L`: the systematic component matrix derived from latent factors, affecting the outcome.
+#'         - `E`: the idiosyncratic error matrix, representing random effects not captured by the systematic component.
+#'         Additional components such as `Gamma` (latent unit factors) and `Upsilon` (latent time factors) are also returned for further analysis.
+#'
+#' @examples
+#' simulated_data <- simulateDGP_multi(N = 100, T = 10, R = 2, tau = 1.5, treated_n = 50, treat_t = 5, additive = FALSE)
+#'
+#' @export
+#' @importFrom stats rnorm matrix
+#'
 
-  components <- decompose_Y(Y_norm, rank = rank)
-  M <- components$M
-  F <- components$F
-  E <- components$E
-  unit_factors <- components$unit_factors
+simulateDGP_multi <- function(N = 50, T = 10, R = 2, K=3, 
+                              tau = c(1.5,-1.5,0,0), 
+                              treated_n = 25, treat_t = 5, 
+                              additive = FALSE,
+                              ratiosd_GU = 1) {
+  
+  # Generate Latent Factors
+  Gamma <- matrix(rnorm(N * R, sd=ratiosd_GU), ncol = R) # Unit factors
+  Upsilon <- matrix(rnorm(T * R), ncol = R) # Time factors
+  lambda <-  rnorm(K) # factor loadings
+  
+  # Choose systematic component model in terms of latent factors
+  if(additive) {
+    
+    L <- matrix(NA, ncol=T, nrow=N)
+    
+    for(t in 1:T){
+      for(i in 1:N){
+        L[i,t] <- Gamma[i,] %*% Upsilon[t,]
+      }
+    }
+    
+  } else {
+    L <- Gamma %*% t(Upsilon) # Multiplicative form
+  }
+  
+  
+  # Generate treatment assignment based on L and reorder L
+  # such that first control than treatment units
+  W_ind <- randomize_treatment_based_on_L(L = L, N = N, N1 = treated_n, lambda = 1) # Ensure lambda or adjust function as needed
+  L <- rbind(L[W_ind==1,], L[W_ind==0,]) 
 
-  ar_coef <- round(fit_ar2(E),2)
-  cor_matrix <- ar2_correlation_matrix(ar_coef,T)
-  scale_sd <- norm(t(E)%*%E/N,'f')/norm(cor_matrix,'f')
-  cov_mat <- cor_matrix*scale_sd
+  # From treat_t onwards, assign treatment to selected units
+  W <- matrix(0, ncol=T, nrow=N)
+  W[1:treated_n, (treat_t:T)] <- 1
+  
+  # Define outcome array
+  Y <- array(NA,dim=c(N,T,K))
+  
+  # Loop over proportions
+  for(k in 1:K){
+  
+    # Proportion specific systemic component (multiplied with factor loading)
+    Lk <- lambda[k] * L    
+    
+    # Simulate Outcome Matrix
+    Ek <- matrix(rnorm(N * T), nrow = N, ncol=T) # Idiosyncratic errors
+    Y[,,k] <- exp(L + tau[k] * W + Ek) # Outcome matrix
+  
+  }
+  
+  # Proportions 
+  Ysum <- rowSums(Y, dims = 2)
+  for(k in 1:K){
+    for(i in 1:N){
+      for(t in 1:T){
+        Y[i,t,k] <- Y[i,t,k]/Ysum[i,t]
+  }}}
+  
 
-  assign_prob <- glm(assignment_vector~unit_factors,family = 'binomial')$fitted.values
-  return(list(F=F, M=M, Sigma=cov_mat,pi=assign_prob, ar_coef=ar_coef))
+  # Long format
+  dat <- reshape2::melt(Y,value.name = "y")
+  colnames(dat)[1:3] <- c("i","t","k")
+  dat$d <- ifelse(dat$t >= treat_t & dat$i <= treated_n,1,0)
+  dat$treated <- ifelse(dat$i <= treated_n,1,0)
+
+  
+  # Return the simulated data and parameters
+  list(dat=dat,  Y = Y, W = W, L = L, E = E, Gamma = Gamma, Upsilon = Upsilon, tau = tau)
 }
 
 
-#' Simulates data from DGPs used in the placebo studies in Sections 3 and 5
-#' of the synthetic difference in differences paper. Described there in Section 3.1.1.
+#' Randomize Treatment Assignment Based on Systematic Component
 #'
-#' @param parameters, a list of dgp parameters (F,M,Sigma,pi) as output by estimate.dgp
-#' @param N1, a cap on the number of treated units,
-#' @param T1, the number of treated periods.
-#' @return a list with 3 elements: the outcome matrix Y, the number of control units N0, and the number of control periods T0.
-#'         The first N0 rows of Y are for units assigned to control, the remaining rows are for units assigned to treatment.
-#' @export simulate_dgp
-#' @importFrom mvtnorm rmvnorm
-simulate_dgp = function(parameters, N1, T1){
-  F=parameters$F
-  M=parameters$M
-  Sigma = parameters$Sigma
-  pi = parameters$pi
-
-  N <- nrow(M)
-  T <- ncol(M)
-
-  assignment <- randomize_treatment(pi,N,N1)
-  N1 <- sum(assignment)
-  N0 <- N - N1
-  T0 <- T - T1
-
-  Y = F + M + rmvnorm(N, sigma = Sigma)
-  return(list(Y=Y[order(assignment), ], N0=N0, T0=T0))
-  # order units by treatment, so treated units are at the bottom of our data matrix in accordance with our convention
-}
-
-
-#' randomize treatment to n units with probability pi
-#' then if the number of treated units is zero, assign treatment to one unit uniformly at random
-#' and  if the number of treated units exceeds a cap, remove treatment uniformly at random so it is exactly that cap
-#' @param pi, the randomization probabilities
-#' @param N, the number of units
-#' @param N1, the cap on the number of treated units
-#' @return a binary vector of length N, with ones indicating assignment to treatment
-randomize_treatment = function(pi, N, N1){
-  assignment_sim <- rbinom(N,1,pi)
+#' This function assigns treatment to units based on a systematic component \(L\) with modulated strength.
+#' It calculates probabilities of treatment assignment using a logistic function, where the influence
+#' of \(L\) on these probabilities is adjusted by a strength parameter (\(\lambda\)). The function ensures
+#' that the number of treated units does not exceed a specified cap (N1), and if the initial assignment
+#' results in no treated units, it assigns treatment to at least one unit.
+#'
+#' @param L The matrix representing the systematic component influencing treatment assignment, where
+#'        each row corresponds to a unit and columns represent different characteristics or time periods.
+#' @param N The total number of units to consider for treatment assignment.
+#' @param N1 The maximum number of units that can be assigned to treatment.
+#' @param lambda The strength parameter that modulates the influence of the systematic component \(L\)
+#'        on the probability of treatment assignment. A higher value of \(\lambda\) results in a stronger
+#'        influence. Default is 1.
+#'
+#' @return A binary vector of length N, with ones indicating assignment to treatment and zeros indicating
+#'         control. The number of ones does not exceed N1, ensuring the cap on treated units is respected.
+#'
+#' @examples
+#' N <- 50  # Number of units
+#' N1 <- 25  # Maximum number of treated units
+#' lambda <- 2  # Strength of influence
+#' # Assuming L is a previously defined matrix representing the systematic component
+#' treatment_assignment <- randomize_treatment_based_on_L(L, N, N1, lambda)
+#' 
+#' @export
+#' @importFrom stats rbinom
+#' @importFrom base matrix sample
+randomize_treatment_based_on_L <- function(L, N, N1, lambda = 1) {
+  # Compute a measure from L to influence treatment probabilities
+  L_measure <- rowSums(L) # Example: row sums of L
+  L_scaled <- scale(L_measure) # Standardize
+  
+  # calcaulte aim pi and use log-odds for constant
+  aim_p <- N1/N
+  const <- log(aim_p/(1-aim_p))
+  
+  # Transform the measure into probabilities using a logistic function with strength parameter lambda
+  pi <- 1 / (1 + exp(- const -lambda * L_scaled))
+  
+  # Simulate treatment assignment based on computed probabilities
+  assignment_sim <- rbinom(N, 1, pi)
+  
+  # Adjusting the number of treated units to meet the cap
   index_as <- which(assignment_sim == 1)
+  
   if (sum(assignment_sim) > N1){
     index_pert <- sample(index_as,N1)
     assignment_sim <- rep(0,N)
     assignment_sim[index_pert] <- 1
-  } else if (sum(assignment_sim) == 0){
+  } else if (sum(assignment_sim) < N1) {
+    index_cont <- 1:N
+    index_as <- index_cont[-index_as]
+    index_pert <- sample(index_as,(N-N1))
+    assignment_sim <- rep(1,N)
+    assignment_sim[index_pert] <- 0
+  }  else if (sum(assignment_sim) == 0){
     index_pert <- sample(1:N,N1)
     assignment_sim <- rep(0,N)
     assignment_sim[index_pert] <- 1
   }
+  
+  
   return(assignment_sim)
 }
 
-
-#' Decompose Y into components F, M, and E as described in Section 3.1.1
-#' also computes a set of 'unit factors': the first [rank] left singular vectors from SVD(Y)
-#' @param Y, the outcomes
-#' @param rank, the assumed rank of the signal component L=F+M
-#' @return a list with elements F, M, E, and unit_factors
-decompose_Y = function(Y,rank) {
-  N <- dim(Y)[1]
-  T <- dim(Y)[2]
-
-  svd_data_mat <- svd(Y)
-  factor_unit <- as.matrix(svd_data_mat$u[,1:rank]*sqrt(N))
-  factor_time <- as.matrix(svd_data_mat$v[,1:rank]*sqrt(T))
-
-  magnitude <- svd_data_mat$d[1:rank]/sqrt(N*T)
-  L <- factor_unit%*%diag(magnitude, nrow = rank, ncol = rank)%*%t(factor_time)
-
-  E <- Y-L
-  F <- outer(rowMeans(L),rep(1,T)) + outer(rep(1,N),colMeans(L)) - mean(L)
-  M <- L - F
-
-  return(list(F=F, M=M, E=E, unit_factors=factor_unit))
-}
-
-#' Estimate ar2 coefficients from iid time series
-#' @param  E, a matrix with those time series as rows
-#' @return a vector of ar2 coefficients: c(lag-1-coefficient, lag-2-coefficient)
-fit_ar2 <- function(E){
-
-  T_full <- dim(E)[2]
-  E_ts <- E[,3:T_full]
-  E_lag_1 <- E[,2:(T_full-1)]
-  E_lag_2 <- E[,1:(T_full-2)]
-
-  a_1 <- sum(diag(E_lag_1%*%t(E_lag_1)))
-  a_2 <- sum(diag(E_lag_2%*%t(E_lag_2)))
-  a_3 <- sum(diag(E_lag_1%*%t(E_lag_2)))
-
-  matrix_factor <- rbind(c(a_1,a_3),c(a_3,a_2))
-
-  b_1 <- sum(diag(E_lag_1%*%t(E_ts)))
-  b_2 <- sum(diag(E_lag_2%*%t(E_ts)))
-
-  ar_coef <- solve(matrix_factor)%*%c(b_1,b_2)
-  return(ar_coef)
-}
-
-#' compute the correlation matrix of a time series generated by an ar2 model
-#' @param ar_coef, the coefficients of the ar2 model: c(lag-1-coefficient, lag-2-coefficient)
-#' @param T, the length of the time series
-#' @return the correlation matrix
-ar2_correlation_matrix <- function(ar_coef,T) {
-
-  result <- rep(0,T)
-  result[1] <- 1
-  result[2] <- ar_coef[1]/(1-ar_coef[2])
-  for (t in 3:T){
-    result[t] <-  ar_coef[1]*result[t-1] + ar_coef[2]*result[t-2]
-  }
-
-  index_matrix <- outer(1:T, 1:T, function(x,y){ abs(y-x)+1 })
-  cor_matrix <- matrix(result[index_matrix],ncol = T,nrow = T)
-
-  return(cor_matrix)
-}
-
-#' Computes a density estimator by smoothing a histogram using Poisson regression.
-#' Implementation of "Lindsey's method", as descrbied in Chapter 10 of
-#' "Computer age statistical inference: algorithms, evidence, and data science'
-#' by Bradley Efron and Trevor Hastie (2016).
-#'
-#' @param x - one-dimensional vector of data;
-#' @param K - number of bins in the histogram;
-#' @param deg - degree of natural splines used in Poisson regression;
-#' @return a list with 2 fields, centers and density, which are K-dimensional vectors containing the bin centers and estimated density within each bin respectively.
-#' @export lindsey_density_estimate
-lindsey_density_estimate <- function(x,K,deg){
-  x_min <- min(x)
-  x_max <- max(x)
-  range_x <- x_max - x_min
-  low_x <- x_min - 0.2*range_x                                        # 20% step outside of range of x
-  up_x <- x_max + 0.2*range_x
-  range_full <-up_x- low_x
-  splits <- seq(low_x,up_x,length.out = K+1)                          # split the range into K segments
-  mesh_size <- splits[2] - splits[1]
-  centers <- (splits[-1]+splits[-(K+1)])/2
-  counts <- as.vector(table(cut(x,splits,include.lowest = TRUE)))     # counts the points in each segment
-  scale <- sum(counts)*mesh_size
-
-  data_matrix <- splines::ns(centers, df = deg)
-  pois_reg_res <- glm(counts~data_matrix, family = 'poisson')
-  counts_pois <- exp(pois_reg_res$linear.predictors)                  # smoothed counts
-  dens_pois <- counts_pois/scale
-
-  return(list(centers=centers, density=dens_pois))
-}
 
