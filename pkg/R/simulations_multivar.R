@@ -61,6 +61,7 @@ simulateDGP_multi <- function(N = 50, T = 10, R = 2, K=3,
   
   # Define outcome array
   Y <- array(NA,dim=c(N,T,K))
+  E <- array(NA,dim=c(N,T,K))
   
   # Loop over proportions
   for(k in 1:K){
@@ -69,8 +70,8 @@ simulateDGP_multi <- function(N = 50, T = 10, R = 2, K=3,
     Lk <- lambda[k] * L    
     
     # Simulate Outcome Matrix
-    Ek <- matrix(rnorm(N * T), nrow = N, ncol=T) # Idiosyncratic errors
-    Y[,,k] <- exp(L + tau[k] * W + Ek) # Outcome matrix
+    E[,,k] <- matrix(rnorm(N * T), nrow = N, ncol=T) # Idiosyncratic errors
+    Y[,,k] <- exp(L + tau[k] * W + E[,,k]) # Outcome matrix
   
   }
   

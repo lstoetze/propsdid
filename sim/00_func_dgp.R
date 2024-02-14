@@ -9,7 +9,7 @@ library(propsdid)
 
 
 
-simulateDGP_multi(K=4,tau_val = c(1,-2,0,0),additive = F)
+simulateDGP_multi(K=4,tau = c(1,-2,0,0),additive = F)
 
 # Makes some plots
 df <- dpg(K=4,tau_val = c(1,-2,0,0),additive = F)
