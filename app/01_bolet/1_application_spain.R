@@ -248,7 +248,7 @@ run_did <- function(dep_var, data) {
     select(munid,year,dep_var,coalXpost) %>%
     filter(complete.cases(.))          # synthdid does not work with NA values
   setup = panel.matrices(sdid_data)
-  estimate <- synthdidprop::sc_estimate(Y=setup$Y, N0=setup$N0, T0=setup$T0,method = "did")
+  estimate <- propsdid::sc_estimate(Y=setup$Y, N0=setup$N0, T0=setup$T0,method = "did")
   ste = sqrt(vcov(estimate, method='placebo'))
   model <- c(estimate,ste)
   return(model)
@@ -325,7 +325,7 @@ run_sdid <- function(dep_var, data) {
     select(munid,year,dep_var,coalXpost) %>%
     filter(complete.cases(.))          # synthdid does not work with NA values
   setup = panel.matrices(sdid_data)
-  estimate <- synthdidprop::sc_estimate(Y=setup$Y, N0=setup$N0, T0=setup$T0,method = "sdid")
+  estimate <- propsdid::sc_estimate(Y=setup$Y, N0=setup$N0, T0=setup$T0,method = "sdid")
   ste = sqrt(vcov(estimate, method='jackknife'))
   model <- c(estimate,ste)
   return(model)
@@ -438,13 +438,13 @@ sdid_data = as.data.frame(spain) %>%  # synthdid does not work with tibbles
   select(munid,year,"psoe",coalXpost) %>%
   filter(complete.cases(.))          # synthdid does not work with NA values
 setup = panel.matrices(sdid_data)
-estimate_psoe <- synthdidprop::sc_estimate(Y=setup$Y, N0=setup$N0, T0=setup$T0,method = "sdid")
+estimate_psoe <- propsdid::sc_estimate(Y=setup$Y, N0=setup$N0, T0=setup$T0,method = "sdid")
 
 sdid_data = as.data.frame(spain) %>%  # synthdid does not work with tibbles
   select(munid,year,"pp",coalXpost) %>%
   filter(complete.cases(.))          # synthdid does not work with NA values
 setup = panel.matrices(sdid_data)
-estimate_pp <- synthdidprop::sc_estimate(Y=setup$Y, N0=setup$N0, T0=setup$T0,method = "sdid")
+estimate_pp <- propsdid::sc_estimate(Y=setup$Y, N0=setup$N0, T0=setup$T0,method = "sdid")
 
 
 plot(est_sdid,
