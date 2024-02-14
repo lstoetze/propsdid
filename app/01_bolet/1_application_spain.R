@@ -1,14 +1,20 @@
 ### Creating a combined & consistent dataset from raw electoral data
-# install.packages("ebal")
+
+
 # data cleaning and manipulating
 library(haven)
 library(readxl)
 library(tidyverse)
-# did and sdid estimation
 library(fixest)
 library(broom)
-# library(synthdid)
-library(synthdidprop) # need to install from tar.tz
+
+# Install propsdid package via
+# devtools::install_github("lstoetze/propsdid",subdir = "pkg")
+# Need permission for private repo
+# Create on github key and first set (or put in .Renviron) 
+# Sys.setenv(GITHUB_PAT = "your_personal_access_token")
+
+library(propsdid) # need to install from tar.tz
 
 # 1. CLEAN ELECTION DATA ----------------------------------
 ## 1.1. Clean 2008 elections ------------------------------
