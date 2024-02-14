@@ -1,4 +1,4 @@
-#' Simulates panel data based on a latent factor model
+#' Simulates panel data based on a latent factor model for proportional data
 #'
 #' @param N Integer, the total number of units in the study.
 #' @param T Integer, the total number of time periods.
@@ -7,8 +7,9 @@
 #' @param treated_n Integer, the number of units to be treated from the treatment start time onwards.
 #' @param treat_t Integer, the time point at which treatment starts, with all prior periods being pre-treatment.
 #' @param additive Logical, indicating whether the systematic component should be additive (`TRUE`) or multiplicative (`FALSE`).
-#'
+#' @param ratiosd_GU Numeric, ratio between standard deviation of unit factors and time factors
 #' @return A list containing:
+#'         - `dat`: a data frame in long format that can be passed on to panel.array function
 #'         - `Y`: the outcome matrix with dimensions N x T, where outcomes for each unit and time period are simulated.
 #'         - `W`: the treatment assignment matrix with dimensions N x T, indicating treatment status for each unit and period based on the predefined logic.
 #'         - `L`: the systematic component matrix derived from latent factors, affecting the outcome.
@@ -128,7 +129,7 @@ randomize_treatment_based_on_L <- function(L, N, N1, lambda = 1) {
   L_measure <- rowSums(L) # Example: row sums of L
   L_scaled <- scale(L_measure) # Standardize
   
-  # calcaulte aim pi and use log-odds for constant
+  # Calculte aim pi and use log-odds for constant
   aim_p <- N1/N
   const <- log(aim_p/(1-aim_p))
   
