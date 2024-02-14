@@ -5,65 +5,11 @@
 #' ---
 
 
-# First function additive factor model one dimsional
-dpg <- function(tau_val = c(0.5,-0.5,0),
-                N = 200, # Number of observations
-                T = 5, # NUmber of Time-points
-                K = 3, # Number of proportions
-                treated_n = 50, # number of treated units
-                treat_t = 5, # Time point of treatment
-                additive = FALSE # additive latent factors
-                ){
+library(propsdid)
 
 
 
-  # Simulate latent factors
-  gamma <- rnorm(N)
-  psi <- rnorm(T)
-  lambda <- rnorm(K)
-
-  # Setup Treatment matrix
-  D <- matrix(0,ncol=T,nrow=N)
-  D[1:treated_n,treat_t:T] <- 1
-
-  Y <- array(NA,dim=c(N,T,K))
-
-  # Loop over proportions
-  for(k in 1:K){
-
-    # Systemic component
-    if (additive){
-      Lk <- lambda[k] * matrix(gamma,ncol=T,nrow=N) +  matrix(psi,ncol=T,nrow=N, byrow=T)
-    } else {
-      Lk <- lambda[k] * gamma %*% t(psi)
-    }
-
-    # Random Error
-    Ek <- matrix(rnorm(T*N),ncol=T)
-
-    # Yk
-    Y[,,k]  <- exp(Lk +  tau_val[k] * D +  Ek)
-
-  }
-
-  # Proportions
-  Ysum <- rowSums(Y, dims = 2)
-
-  # Proportions
-  for(k in 1:K){
-    Y[,,k] <- Y[,,k]/Ysum
-  }
-
-
-  # Long format
-  dat <- reshape2::melt(Y,value.name = "y")
-  colnames(dat)[1:3] <- c("i","t","k")
-  dat$d <- ifelse(dat$t >= treat_t & dat$i <= treated_n,1,0)
-  dat$treated <- ifelse(dat$i <= treated_n,1,0)
-
-  return(dat)
-
-}
+simulateDGP_multi(K=4,tau_val = c(1,-2,0,0),additive = F)
 
 # Makes some plots
 df <- dpg(K=4,tau_val = c(1,-2,0,0),additive = F)
