@@ -27,7 +27,8 @@ simulateDGP_multi <- function(N = 50, T = 10, R = 2, K=3,
                               tau = c(1.5,-1.5,0,0), 
                               treated_n = 25, treat_t = 5, 
                               additive = FALSE,
-                              ratiosd_GU = 1) {
+                              ratiosd_GU = 1, 
+                              lambda_set = 1 ) {
   
   # Generate Latent Factors
   Gamma <- matrix(rnorm(N * R, sd=ratiosd_GU), ncol = R) # Unit factors
@@ -35,7 +36,7 @@ simulateDGP_multi <- function(N = 50, T = 10, R = 2, K=3,
   lambda <-  rnorm(K) # factor loadings
   
   # Choose systematic component model in terms of latent factors
-  if(additive) {
+  if(isTRUE(additive)) {
     
     L <- matrix(NA, ncol=T, nrow=N)
     
@@ -52,7 +53,7 @@ simulateDGP_multi <- function(N = 50, T = 10, R = 2, K=3,
   
   # Generate treatment assignment based on L and reorder L
   # such that first control than treatment units
-  W_ind <- randomize_treatment_based_on_L(L = L, N = N, N1 = treated_n, lambda = 1) # Ensure lambda or adjust function as needed
+  W_ind <- randomize_treatment_based_on_L(L = L, N = N, N1 = treated_n, lambda = lambda_set) # Ensure lambda or adjust function as needed
   L <- rbind(L[W_ind==1,], L[W_ind==0,]) 
 
   # From treat_t onwards, assign treatment to selected units

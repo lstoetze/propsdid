@@ -10,25 +10,27 @@ library(tidyverse)
 
 
 
-# Makes some plots
-df <- simulateDGP_multi(K=4,tau = c(0.25,-0.5,0,0),additive = F,ratiosd_GU = 0.1,
-                        T = 5, treated_n = 3)$dat
+# Makes illustartive plot
+df <- simulateDGP_multi(K=4,tau = c(0.5,-0.5,0,0),additive = T,ratiosd_GU = 0.1,
+                        T = 5, treat_t = 4, N=100, treated_n = 80 )$dat
 df %>%
   group_by(treated,t,k) %>%
-  summarise("mean_y" = mean(y)) %>%
+  summarise("Y" = mean(y)) %>%
+  ungroup() %>% 
+  mutate(k = factor(k, levels = 1:4,labels = paste("Proportion",1:4)),
+         treated = factor(treated, levels = 0:1, labels = c("Control","Treated"))) %>%
   ggplot() +
-  geom_line(aes(y=mean_y,x=t,group=as.factor(treated),col=as.factor(treated))) +
-  facet_wrap(~ k, scales = "free") +
-  theme_minimal()
+  geom_line(aes(y=Y,x=t,group=(treated),col=(treated))) +
+  facet_wrap(~ k) +
+  annotate('rect', xmin = 3.5, xmax = 5.5, ymin = -Inf, ymax = Inf, fill = 'grey', alpha = 0.2) +
+  theme_minimal() + xlab("Time") + ylab("y") +
+  theme(legend.title = element_blank()) +
+  scale_color_grey()
+
+ggsave("fig_sim0.pdf",width = 9,height = 6)
 
 
-setup <- panel.array(df)
-est <- sc_estimate(setup$Y,setup$N0, setup$T0,
-                   porp_dat=T,method="sdid")
-
-summary(est)
-
-# Estimation step, Two-way Fixed Effect, SynDiD Separate, Prop Syn Did
+ # Estimation step, Two-way Fixed Effect, SynDiD Separate, Prop Syn Did
 estmation_step  <- function(df, K=4){
 
   ate <- NULL
@@ -67,65 +69,87 @@ res_est <- list()
 for(i in 1:Nrep){
 
   # Generate Data
-  df <-  simulateDGP_multi(K=4,tau = tau, additive = F)$dat
+  df <-  simulateDGP_multi(K=4,tau = c(0.5,-0.5,0,0),additive = T,ratiosd_GU = 0.1,
+                           T = 5, treat_t = 4, N=100, treated_n = 80)$dat
  
-  # Calculate in-sample ATT
-  true_ATT <- data.frame("k"=1:length(tau),"tau"= tau) %>% 
-    right_join(.,df) %>%
-    # filter(treated == 1,t >9 ) %>%  # weiß ich nicht genau
+  # Calculate in-sample ATT and ATE based on counterfactuals
+  att <- df %>% filter(treated == 1, t>3 ) %>%
     group_by(k) %>%
-    summarise("ATT_insample" =  mean(y*(1-y) * tau)  )
+    summarise("att"=mean(y1 - y0)) %>%
+    pull("att")
  
+  ate <- df %>% 
+    group_by(k) %>%
+    summarise("ate"=mean(y1 - y0)) %>%
+    pull("ate")
+  
   # Estimate Models
-  res <- estmation_step(df, K = 4)
-  df_res <- rbind(do.call(rbind, res), "att"= true_ATT$ATT_insample)
+  df_sub <- df %>% select(i,t,k,y,d,treated)
+  res <- estmation_step(df_sub , K = 4)
 
-  res_est[[i]] <-  data.frame(df_res)
-  res_est[[i]]$est_mean <- apply(res_est[[i]],1,mean)
-  res_est[[i]]$est <- rownames(res_est[[i]])
+  res_est[[i]] <-  data.frame(t(do.call("rbind", res)))
+  res_est[[i]]$ate <- ate
+  res_est[[i]]$att <- att
+  res_est[[i]]$k <- 1:4
+  res_est[[i]]$sample <-  i
   rownames(res_est[[i]]) <- NULL
 
 }
 
 
+# SUm Constriant 
+df_sum <- do.call(rbind,res_est)  %>%
+  select(did   ,     sdid   ,  sdid_prop,k, sample) %>%
+  pivot_longer(c("did","sdid", "sdid_prop"), names_to = "method") %>%
+  mutate(method = ifelse(method == "sdid_prop","sdidp",method ))%>%
+  group_by(method,sample) %>%
+  summarise("value" = sum(value)) %>%
+  group_by(method) %>%
+  summarise("value"=sd(value)) %>%
+  pivot_wider(names_from = "method")  %>%
+  select(-did) %>% mutate(type="sum_cons")
 
-# Estimate
-df_plot <- do.call(rbind,res_est) %>%
-  mutate(est = factor(est,levels = c("did","sdid","sdid_prop","att"),
-                      labels = c("Two-way-fixed Effects",
-                                  "Syn Diff-in-Diff",
-                                  "Syn Diff-in-Diff Prop",
-                                  "ATT")))
+do.call(rbind,res_est)  %>%
+  select(did   ,     sdid   ,  sdid_prop,k, sample) %>%
+  pivot_longer(c("did","sdid", "sdid_prop"), names_to = "method") %>%
+  mutate(method = ifelse(method == "sdid_prop","sdidp",method ))%>%
+  group_by(method,sample) %>%
+  summarise("value" = abs(sum(value)) > 0.03) %>%
+  group_by(method) %>%
+  summarise("value"=mean(value))
+
+# Get eValuation Metrics
+df_bias <- do.call(rbind,res_est) %>%
+  mutate(eval_did_bias_ate = ate - did,
+         eval_did_bias_att = att - did,
+         eval_sdid_bias_ate = ate - sdid,
+         eval_sdid_bias_att = att - sdid,
+         eval_sdidp_bias_ate = ate - sdid_prop,
+         eval_sdidp_bias_att = att - sdid_prop,
+         
+         eval_did_rmse_ate = sqrt((ate - did)^2),
+         eval_did_rmse_att = sqrt((att - did)^2),
+         eval_sdid_rmse_ate = sqrt((ate - sdid)^2),
+         eval_sdid_rmse_att = sqrt((att - sdid)^2),
+         eval_sdidp_rmse_ate = sqrt((ate - sdid_prop)^2),
+         eval_sdidp_rmse_att  = sqrt((att - sdid_prop)^2)
+         ) %>%
+  select(starts_with("eval_"),k, sample) %>%
+  pivot_longer(starts_with("eval_")) %>%
+  separate(name, into = c(NA,"method","type","comparision"))
 
 
-# Statistics
-df_plot %>%
-  group_by(est) %>%
-  summarise_all(mean)
+# Table with Stats Bias and 
+df_bias <- df_bias %>%
+    group_by(type,method) %>%
+    summarise("value"=mean(value)) %>%
+    pivot_wider(names_from = "method")  %>%
+    select(-did)
+  
+
+  
+  bind_rows(df_bias,df_sum) %>%
+    xtable::xtable(digits = 4)
 
 
-# Mean
-df_plot %>%
-  dplyr::select(est_mean,est) %>%
-  group_by(est) %>%
-  summarise("mean"=mean(est_mean), "sd" = sd(est_mean)) %>%
-  ggplot()  +
-  geom_pointrange(aes(x=est,
-                      y=mean, ymin=mean+sd, ymax=mean-sd)) +
-  coord_flip() +
-  theme_minimal() +
-  ylab("Mean of Estimates") +
-  xlab("")
 
-
-# Estimates (virtually makes no difference)
-df_plot %>%
-  dplyr::select(-est_mean) %>%
-  reshape2::melt(.) %>%
-  ggplot()  +
-  geom_density(aes(value, color=est, fill=est), alpha=0.2) +
-  geom_vline(xintercept=0, col="red", alpha=0.6) +
-  facet_wrap(variable ~., scales="free") +
-  theme_minimal() +
-  xlab("Estimate of ATE") +
-  ylab("")
