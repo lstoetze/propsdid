@@ -61,6 +61,8 @@ simulateDGP_multi <- function(N = 50, T = 10, R = 2, K=3,
   
   # Define outcome array
   Y <- array(NA,dim=c(N,T,K))
+  Y0 <- array(NA,dim=c(N,T,K)) # counterfactuals Y(0)
+  Y1 <- array(NA,dim=c(N,T,K)) # counterfactuals Y(1)
   E <- array(NA,dim=c(N,T,K))
   
   # Loop over proportions
@@ -73,19 +75,34 @@ simulateDGP_multi <- function(N = 50, T = 10, R = 2, K=3,
     E[,,k] <- matrix(rnorm(N * T), nrow = N, ncol=T) # Idiosyncratic errors
     Y[,,k] <- exp(L + tau[k] * W + E[,,k]) # Outcome matrix
   
+    # Simualte counterfactuals
+    Y0[,,k] <- exp(L + E[,,k]) # Outcome matrix
+    Y1[,,k] <- exp(L + tau[k] + E[,,k]) # Outcome matrix
+    
+    
   }
   
   # Proportions 
   Ysum <- rowSums(Y, dims = 2)
+  Y0sum <- rowSums(Y0, dims = 2)
+  Y1sum <- rowSums(Y1, dims = 2)
   for(k in 1:K){
     for(i in 1:N){
       for(t in 1:T){
         Y[i,t,k] <- Y[i,t,k]/Ysum[i,t]
+        Y0[i,t,k] <- Y0[i,t,k]/Y0sum[i,t]
+        Y1[i,t,k] <- Y1[i,t,k]/Y1sum[i,t]
   }}}
   
 
   # Long format
   dat <- reshape2::melt(Y,value.name = "y")
+  dat0 <- reshape2::melt(Y0,value.name = "y0")
+  dat1 <- reshape2::melt(Y1,value.name = "y1")
+  
+  
+  # Merge
+  dat <- merge(merge(dat,dat0),dat1)
   colnames(dat)[1:3] <- c("i","t","k")
   dat$d <- ifelse(dat$t >= treat_t & dat$i <= treated_n,1,0)
   dat$treated <- ifelse(dat$i <= treated_n,1,0)

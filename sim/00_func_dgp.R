@@ -53,24 +53,34 @@ estmation_step  <- function(df, K=4){
   setup <- panel.array(df)
   est_prop <- sc_estimate(setup$Y,setup$N0, setup$T0,
                                    porp_dat=T,method="sdid")
-
+  
   return(list("did"=ate, "sdid"=tau.hat, "sdid_prop"= c(est_prop)))
 
 }
 
 # Simulation
-Nrep <- 100
+Nrep <- 1000
+tau <- c(0.5,-0.5,0,0)
 res_est <- list()
+
 
 for(i in 1:Nrep){
 
   # Generate Data
-  df <-  simulateDGP_multi(K=4,tau = c(0.25,-0.5,0,0),additive = F)$dat
-  
+  df <-  simulateDGP_multi(K=4,tau = tau, additive = F)$dat
+ 
+  # Calculate in-sample ATT
+  true_ATT <- data.frame("k"=1:length(tau),"tau"= tau) %>% 
+    right_join(.,df) %>%
+    # filter(treated == 1,t >9 ) %>%  # weiß ich nicht genau
+    group_by(k) %>%
+    summarise("ATT_insample" =  mean(y*(1-y) * tau)  )
+ 
   # Estimate Models
   res <- estmation_step(df, K = 4)
+  df_res <- rbind(do.call(rbind, res), "att"= true_ATT$ATT_insample)
 
-  res_est[[i]] <-  data.frame(do.call(rbind, res))
+  res_est[[i]] <-  data.frame(df_res)
   res_est[[i]]$est_mean <- apply(res_est[[i]],1,mean)
   res_est[[i]]$est <- rownames(res_est[[i]])
   rownames(res_est[[i]]) <- NULL
@@ -81,10 +91,11 @@ for(i in 1:Nrep){
 
 # Estimate
 df_plot <- do.call(rbind,res_est) %>%
-  mutate(est = factor(est,levels = c("did","sdid","sdid_prop"),
+  mutate(est = factor(est,levels = c("did","sdid","sdid_prop","att"),
                       labels = c("Two-way-fixed Effects",
-                                                         "Syn Diff-in-Diff",
-                                                         "Syn Diff-in-Diff Prop")))
+                                  "Syn Diff-in-Diff",
+                                  "Syn Diff-in-Diff Prop",
+                                  "ATT")))
 
 
 # Statistics
