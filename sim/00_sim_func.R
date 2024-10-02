@@ -118,3 +118,40 @@ simulateDGP_multi <- function(N = 50, T = 10, K = 3,
   # Return the simulated data and parameters
   list(dat = dat, Y = Y, W = W)
 }
+
+
+# Estimation step, Two-way Fixed Effect, SynDiD Separate, Prop Syn Did ====
+estmation_step  <- function(df, K=4){
+  
+  tau_did <- NULL
+  tau_sc <- NULL
+  tau_sdid <- NULL
+  
+  for(kth in 1:K){
+    # Two-way fixed effects
+    tau_did[kth]  <- coef(lm(y ~ d + as.factor(t) + as.factor(i), filter(df,k==kth)))["d"]
+    
+    # SynDiff-in-DIff
+    setup <- filter(df,k==kth) %>%
+      mutate(d = d==1 ) %>%
+      panel.matrices(.,outcome = "y",
+                     unit = "i",time = "t",treatment = "d")
+    
+    tau_sdid[kth]  <- sc_estimate(setup$Y,setup$N0, setup$T0,
+                                  method="sdid")
+    
+    tau_sc[kth]  <- sc_estimate(setup$Y,setup$N0, setup$T0,
+                                method="sc")
+    
+  }
+  
+  # Setup Array
+  setup <- panel.array(df)
+  est_prop <- sc_estimate(setup$Y,setup$N0, setup$T0,
+                          porp_dat=T,method="sdid")
+  
+  return(list("did"=tau_did, 
+              "sc"=tau_sc,"sdid"=tau_sdid, 
+              "sdid_prop"= c(est_prop)))
+  
+}

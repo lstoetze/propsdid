@@ -1,11 +1,11 @@
 
-# Load results
-res_est <- readRDS("Sim_res.RDS") %>% 
-  mutate(treatment_selection = case_when(treatment_selection == 1 ~ "level",
-                                         treatment_selection == 0 ~ "trend"))
-
-unique(res_est$treatment_period)
-unique(res_est$treatment_selection)
+  # Packages
+  source("00_setup.R")
+  
+  # Load results
+  res_est <- readRDS("Sim_res.RDS") %>% 
+    mutate(treatment_selection = case_when(treatment_selection == 1 ~ "level",
+                                           treatment_selection == 0 ~ "trend"))
 
 
 # Sum Constraint  ============
@@ -79,7 +79,6 @@ unique(res_est$treatment_selection)
     dplyr::select(-comparision)
 
   df_bias_agg_tab
-  library(xtable)
   print(xtable(df_bias_agg_tab, digits = 3),include.rownames = F)
   
   
