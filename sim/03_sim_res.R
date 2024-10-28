@@ -92,7 +92,37 @@
     dplyr::select(-comparision)
 
   df_bias_agg_tab
-  print(xtable(df_bias_agg_tab, digits = 3),include.rownames = F)
+  print(xtable(df_bias_agg_tab, digits = 3),include.rownames = F, file)
+  
+  # Create Table
+  # Format the table with kableExtra
+  latex_table <- df_bias_agg_tab %>%
+    mutate(across(c(sd, rmse, bias, sum_constraint), ~ round(.x, 3))) %>%
+    mutate(method = case_when(
+      method == "did" ~ "DID",
+      method == "sc" ~ "SC",
+      method == "scp" ~ "PropSC",
+      method == "sdid" ~ "SDID",
+      method == "sdidp" ~ "PropSDID",
+    ))  %>%
+    arrange(treatment_selection) %>%
+    mutate(
+      treatment_selection = recode(
+        treatment_selection,
+        "local levels" = "Treatment selection: local levels",
+        "local trends" = "Treatment selection: local trends"
+      )
+    ) %>%
+    select(-treatment_selection) %>%
+    kable("latex", booktabs = TRUE, 
+          caption = "Monte-Carlo evaluation of difference-in-differences (DID), synthetic difference-in-differences (SDID), proportional synthetic difference-in-differences (PropSDID), synthetic control (SC), and proportional synthetic control (PropSC).",
+          col.names = c("Method", "S.D.", "RMSE", "abs Bias", "Sum const.")) %>%
+    kable_styling(latex_options = c("hold_position","scale_down")) %>%  # No 'striped' option here
+    group_rows("Treatment selection: local levels", 1, 5) %>%
+    group_rows("Treatment selection: local trends", 6, 10) 
+  
+  # Save to a .tex file
+  cat(latex_table, file = "table1.tex")
   
   
   # Aggregate for different scenarios

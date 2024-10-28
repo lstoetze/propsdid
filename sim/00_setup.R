@@ -16,6 +16,7 @@
 library(propsdid)
 library(xtable)
 library(tidyverse)
+library(kableExtra)
 library("foreach")
 library("doParallel")
 

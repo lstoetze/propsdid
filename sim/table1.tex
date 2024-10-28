@@ -1,0 +1,26 @@
+\begin{table}[!h]
+\centering
+\caption{Monte-Carlo evaluation of difference-in-differences (DID), synthetic difference-in-differences (SDID), proportional synthetic difference-in-differences (PropSDID), synthetic control (SC), and proportional synthetic control (PropSC).}
+\centering
+\resizebox{\ifdim\width>\linewidth\linewidth\else\width\fi}{!}{
+\begin{tabular}[t]{lrrrr}
+\toprule
+Method & S.D. & RMSE & abs Bias & Sum const.\\
+\midrule
+\addlinespace[0.3em]
+\multicolumn{5}{l}{\textbf{Treatment selection: local levels}}\\
+\hspace{1em}DID & 0.072 & 0.055 & 0.041 & 0.000\\
+\hspace{1em}SC & 0.058 & 0.054 & 0.039 & 0.058\\
+\hspace{1em}PropSC & 0.054 & 0.049 & 0.036 & 0.000\\
+\hspace{1em}SDID & 0.045 & 0.036 & 0.025 & 0.014\\
+\hspace{1em}PropSDID & 0.044 & 0.036 & 0.025 & 0.000\\
+\addlinespace[0.3em]
+\multicolumn{5}{l}{\textbf{Treatment selection: local trends}}\\
+\hspace{1em}DID & 0.072 & 0.072 & 0.055 & 0.000\\
+\hspace{1em}SC & 0.058 & 0.051 & 0.036 & 0.050\\
+\hspace{1em}PropSC & 0.054 & 0.048 & 0.033 & 0.000\\
+\hspace{1em}SDID & 0.045 & 0.040 & 0.028 & 0.024\\
+\hspace{1em}PropSDID & 0.044 & 0.038 & 0.026 & 0.000\\
+\bottomrule
+\end{tabular}}
+\end{table}
