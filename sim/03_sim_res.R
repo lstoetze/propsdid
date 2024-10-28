@@ -14,10 +14,11 @@
 
   # Calculate
   res_sumcons <- res_est  %>%
-    dplyr::select(did,sdid,sdid_prop,k, sample, time_periods,
+    dplyr::select(did,sdid,sc,sdid_prop,sc_prop,k, sample, time_periods,
                   treatment_period,units, treatment_proportion, treatment_selection) %>%
-    pivot_longer(c("did","sdid", "sdid_prop"), names_to = "method") %>%
-    mutate(method = ifelse(method == "sdid_prop","sdidp",method ))%>%
+    pivot_longer(c("did","sdid", "sc",  "sdid_prop", "sc_prop"), names_to = "method") %>%
+    mutate(method = ifelse(method == "sdid_prop","sdidp",method ),
+           method = ifelse(method == "sc_prop","scp",method ),)%>%
     group_by(method,sample,time_periods,
              treatment_period,units, treatment_proportion, treatment_selection) %>%
     summarise("value" = abs(sum(value))) %>%
@@ -38,24 +39,36 @@
             eval_did_sd_att = sd(did),
             eval_sdid_sd_ate = sd(sdid),
             eval_sdid_sd_att = sd(sdid),
+            eval_sc_sd_ate = sd(sc),
+            eval_sc_sd_att = sd(sc),
             eval_sdidp_sd_ate = sd(sdid_prop),
             eval_sdidp_sd_att = sd(sdid_prop),
+            eval_scp_sd_ate = sd(sc_prop),
+            eval_scp_sd_att = sd(sc_prop),
       
            # In sample bias
            eval_did_bias_ate = (ate - did),
            eval_did_bias_att = (att - did),
            eval_sdid_bias_ate = (ate - sdid),
            eval_sdid_bias_att = (att - sdid),
+           eval_sc_bias_ate = (ate - sc),
+           eval_sc_bias_att = (att - sc),
            eval_sdidp_bias_ate = (ate - sdid_prop),
            eval_sdidp_bias_att = (att - sdid_prop),
+           eval_scp_bias_ate = (ate - sc_prop),
+           eval_scp_bias_att = (att - sc_prop),
            
            # In sample RMSE
            eval_did_rmse_ate = ((ate - did)^2),
            eval_did_rmse_att = ((att - did)^2),
            eval_sdid_rmse_ate = ((ate - sdid)^2),
            eval_sdid_rmse_att = ((att - sdid)^2),
+           eval_sc_rmse_ate = ((ate - sc)^2),
+           eval_sc_rmse_att = ((att - sc)^2),
            eval_sdidp_rmse_ate = ((ate - sdid_prop)^2),
-           eval_sdidp_rmse_att  = ((att - sdid_prop)^2)
+           eval_sdidp_rmse_att  = ((att - sdid_prop)^2),
+           eval_scp_rmse_ate = ((ate - sc_prop)^2),
+           eval_scp_rmse_att  = ((att - sc_prop)^2)
     ) %>%
     dplyr::select(starts_with("eval_"),k, sample,time_periods,
                   treatment_period,units, treatment_proportion, treatment_selection) %>%
@@ -100,13 +113,23 @@
   
   df_bias_agg_all <- df_bias_agg_all %>%
     mutate(obs = as.numeric(as.character(time_periods)) * as.numeric(as.character(units)))
-
-  ggplot(filter(df_bias_agg_all, comparision == "att", type=="rmse")) +
-    geom_point(aes(y=mean_value,x=log(obs), col=method)) +
-    geom_smooth(aes(y=mean_value,x=log(obs), group=method), method="lm") +
-    facet_wrap(~ method) +
-    theme_bw()
   
+  filter(df_bias_agg_all, comparision == "att", type=="rmse") %>%
+  mutate(method = case_when(
+    method == "did" ~ "DID",
+    method == "sc" ~ "SC",
+    method == "scp" ~ "PropSC",
+    method == "sdid" ~ "SDID",
+    method == "sdidp" ~ "PropSDID",
+  ))  %>%
+  ggplot() +
+    geom_point(aes(y=mean_value,x=log(obs))) +
+    geom_smooth(aes(y=mean_value,x=log(obs))) +
+    facet_grid(treatment_selection~ method) +
+    theme_bw()  + ylab("RMSE") + xlab("Number of observations (log), units X time")
+  
+  
+  ggsave("fig_sim1_casenum.pdf")
   summary(lm(mean_value ~ log(obs)*method, 
              filter(df_bias_agg_all, method %in% c("sdid","sdidp"))))
   

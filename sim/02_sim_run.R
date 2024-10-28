@@ -13,7 +13,7 @@
                            "treatment_selection" = c(0,1)) %>%
     mutate(treat_period_start = time_periods - (treatment_period - 1))
 
-
+  
   # Number of repetitions
   Nrep <- 1000
   

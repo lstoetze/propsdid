@@ -1,7 +1,7 @@
 # Random Assignment based on factors =====
 randomize_treatment_based_on_L <- function(L, N, N1, lambda = 1) {
   
-  # Calculte aim pi and use log-odds for constant
+  # Calculate aim pi and use log-odds for constant
   aim_p <- N1/N
   const <- log(aim_p/(1-aim_p))
   
@@ -150,8 +150,13 @@ estmation_step  <- function(df, K=4){
   est_prop <- sc_estimate(setup$Y,setup$N0, setup$T0,
                           porp_dat=T,method="sdid")
   
+  est_prop_sc  <- sc_estimate(setup$Y,setup$N0, setup$T0,
+                          porp_dat=T,method="sc")
+  
   return(list("did"=tau_did, 
               "sc"=tau_sc,"sdid"=tau_sdid, 
-              "sdid_prop"= c(est_prop)))
+              "sdid_prop"= c(est_prop),
+              "sc_prop" = c(est_prop_sc)))
   
 }
+

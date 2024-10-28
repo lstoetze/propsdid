@@ -5,9 +5,9 @@
 # Example === 
 
   # Generate Data
-  set-seed(2893659135)
+  set.seed(2893659135)
   df <- simulateDGP_multi(K=4,
-                          tau = c(15,0,0,0),
+                          tau = c(0.5,0,0,0),
                           T = 5, treat_t = 5, N=200, treated_n = 100,
                           set_delta =  0, lambda_set = 2,
                           gamma_sd = c(1,1,1,1), gamma_mu = c(0,0,0,0),
@@ -64,6 +64,8 @@
   setup <- panel.array(df_est)
   est_prop <- sc_estimate(setup$Y,setup$N0, setup$T0,
                           porp_dat=T,method="sdid")
+  est_prop_sc <- sc_estimate(setup$Y,setup$N0, setup$T0,
+                          porp_dat=T,method="sc")
   est_sdid <- est_prop[[1]]
   
   # TRUE ATT
