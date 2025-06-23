@@ -5,7 +5,7 @@
 # Example === 
 
   # Generate Data
-  set.seed(2893659135)
+  set.seed(289659135)
   df <- simulateDGP_multi(K=4,
                           tau = c(0.5,0,0,0),
                           T = 5, treat_t = 5, N=200, treated_n = 100,

@@ -44,7 +44,8 @@ simulateDGP_multi <- function(N = 50, T = 10, K = 3,
                               gamma_sd = rep(1,K), gamma_mu = rep(0,K),
                               upsilon_sd = rep(1,K), upsilon_mu = rep(0,K),
                               epsilon_t_sd=0.5,epsilon_i_sd=0.5,
-                              gamma_update_sd = 0.1, upsilon_update_sd = 0.1
+                              gamma_update_sd = 0.1, upsilon_update_sd = 0.1,
+                              rho_gamma = 0.95, rho_upsilon = 0.8
 ) {
   
   require(reshape2)  
@@ -78,9 +79,10 @@ simulateDGP_multi <- function(N = 50, T = 10, K = 3,
     # Loop over proportions
     for (k in 1:K) {
       
-      # Update unit factors (Gamm0) and time factors (Upsilon) dynamically
-      Gamma0[,k] <- Gamma0[,k] + Upsilon0[,k]  + rnorm(N, sd = gamma_update_sd) # Update Gamm0
-      Upsilon0[,k] <- Upsilon0[,k] + rnorm(N, sd = upsilon_update_sd)
+      # Update latent unit factors (Gamma and Upsilon) dynamically
+      # Use autoregressive AR(1) process for both (rho_gamma, rho_upsilon) 
+      Gamma0[,k] <- rho_gamma * Gamma0[,k] + Upsilon0[,k]  + rnorm(N, sd = gamma_update_sd) # Update Gamm0
+      Upsilon0[,k] <- rho_upsilon * Upsilon0[,k] + rnorm(N, sd = upsilon_update_sd)
       
       # Error Terms
       E <- rnorm(N,sd=epsilon_i_sd) # Idiosyncratic errors

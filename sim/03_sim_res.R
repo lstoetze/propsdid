@@ -23,7 +23,7 @@
              treatment_period,units, treatment_proportion, treatment_selection) %>%
     summarise("value" = abs(sum(value))) %>%
     group_by(method,treatment_selection) %>%
-    summarise("sum_constraint"=round(mean(value),3)) 
+    summarise("sum_constraint"=round(mean(value),3)*100) 
   
   # Table sumcontraint
   res_sumcons
@@ -80,16 +80,24 @@
   df_bias_agg <- df_bias %>%
     pivot_wider(names_from = type, values_from = value) %>%
     group_by(method,comparision,treatment_selection) %>%
-    summarise("sd"=(mean(sd)),
-              "rmse"= sqrt(mean(rmse)),
-              "bias" = mean(abs(bias))) 
+    rename("se" = "rmse") %>%
+    summarise("N" = n(),
+              "sd"=(mean(sd)) * 100,
+              "rmse"= sqrt(mean(se)) * 100,
+              "absbias" = mean(abs(bias)) * 100,
+              "se_rmse" = sd(se) / sqrt(N) * 100 ,    
+              "se_absbias" = sd(abs(bias))/ sqrt(N)* 100
+              ) 
 
+  df_bias_agg %>% select(se_absbias)
+  
   # Table for first category
   df_bias_agg_tab <- df_bias_agg  %>% 
+    select(!starts_with("se_")) %>%
     arrange(treatment_selection) %>% 
     left_join(.,res_sumcons) %>%
     ungroup() %>%
-    dplyr::select(-comparision)
+    dplyr::select(-comparision) 
 
   df_bias_agg_tab
   print(xtable(df_bias_agg_tab, digits = 3),include.rownames = F, file)
