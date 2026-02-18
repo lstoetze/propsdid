@@ -1,10 +1,10 @@
-# Synthetic Control Methods for Proportions
+# Estimating Treatment Effects on Proportions with Synthetic Controls
 
 This is the github rep for the paper "Estimating Treatment Effects on Proportions with Synthetic Controls". 
 
 ## Package
 
-The subfolder pkg/ includes the popsdid package to estimate syntehic control methods with common weights. This can be installed:
+The subfolder pkg/ includes the popsdid package to estimate Synthetic control methods with common weights. This can be installed:
 
 > devtools::install_github("lstoetze/propsdid", subdir="pkg")
 
