@@ -11,7 +11,7 @@ This package extends the functionality of the [**synthdid**](https://synth-infer
 
 To install the package directly from GitHub, run:
 
-Run `devtools::install_github("lstoetze/propsdid", subdir = "pkg")` to install the package.
+`devtools::install_github("lstoetze/propsdid", subdir = "pkg")`
 
 
 ---
