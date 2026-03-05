@@ -1,32 +1,53 @@
 #' @description
-#' This package implements the synthetic difference in difference estimator (SDID) for the average treatment effect in panel data,
-#' as proposed in Arkhangelsky et al (2019). We observe matrices of outcomes Y and binary treatment indicators W
-#' that we think of as satisfying Y\[i,j\] = L\[i,j\] + tau\[i,j\] W\[i,j\] + noise\[i,j\].
-#' Here tau\[i,j\] is the effect of treatment on the unit i at time j, and we estimate the average effect of
-#' treatment when and where it happened: the average of tau\[i,j\] over the observations with W\[i,j\]=1.
-#' All treated units must begin treatment simultaneously, so W is a block matrix: W\[i,j\] = 1 for i > N0 and j > T0
-#' and zero otherwise, with N0 denoting the number of control units and T0 the number of observation times
-#' before onset of treatment. This applies, in particular, to the case of a single treated unit or treated period.
+#' The `propsdid` package provides methods for estimating treatment effects on 
+#' *proportional outcomes* using extensions of the Synthetic Control (SC) and 
+#' Synthetic Difference‑in‑Differences (SDID) estimators.  
 #'
-#' This package is currently in beta and the functionality and interface is subject to change.
+#' The package implements Synthetic Control  and Synthetic 
+#' Difference‑in‑Differences ewith common-weights stimators introduced in:
 #'
-#' Some helpful links for getting started:
+#' Bogatyrev, K., & Stoetzer, L.  
+#' *Estimating treatment effects on proportions with synthetic controls.*  
+#' OSF Preprints. https://osf.io/preprints/osf/brhd3
 #'
-#' * The [R package documentation](https://synth-inference.github.io/synthdid/) contains usage examples and method reference.
-#' * The [online vignettes](https://synth-inference.github.io/synthdid/articles/more-plotting.html) contains a gallery of plot examples.
-#' * For community questions and answers around usage, see [Github issues page](https://github.com/synth-inference/synthdid/issues).
+#' It extends the original `synthdid` package that estimates treatment effects for 
+#' *single‑outcome panels*. This package includes an extension to settings 
+#' where **multiple proportional outcomes**.
+#'
+#' The method estimates a common set of unit and time weights across all 
+#' outcomes, ensuring that the reconstructed counterfactual respects the 
+#' compositional structure of the data, and treatment effects sum to zero.
+#'
+#' ## Key Features
+#' * Synthetic Difference‑in‑Differences with **common weights**  
+#' * Synthetic Control with **common weights**  
+#'
+#' ## Links
+#' * GitHub repository: https://github.com/lstoetze/propsdid
+#' * Paper preprint: https://osf.io/preprints/osf/brhd3
 #'
 #' @examples
 #' \donttest{
-#'# Estimate the effect of California Proposition 99 on cigarette consumption
-#'data('california_prop99')
-#'setup = panel.matrices(california_prop99)
-#'tau.hat = synthdid_estimate(setup$Y, setup$N0, setup$T0)
-#'se = sqrt(vcov(tau.hat, method='placebo'))
-#'sprintf('point estimate: %1.2f', tau.hat)
-#'sprintf('95%% CI (%1.2f, %1.2f)', tau.hat - 1.96 * se, tau.hat + 1.96 * se)
-#'plot(tau.hat)
-#'}
+#' Example: Estimating Electoral Effects of Transition Agreement in Spain 
+#' data("spain")
+#' # Create panel array
+#' df_spain <- panel.array(spain,
+#'                         unit = "province",
+#'                         time = "election",
+#'                         category = "party",
+#'                         outcome = "votes",
+#'                         treatment = "treatment"
+#'                        )
+#' # Synthethic Control with common weight 
+#' est_sc_cw <- sc_estimate(df_spain$Y, df_spain$N0, df_spain$T0,
+#'                          porp_dat = TRUE, method = "sc")
+#' sum_est <- summary(est_sc_cw,fast = T) # fast = TRUE, Jackknife SE 
+#' est_sc_cw
+#' # Synthethic Difference-in-Difference with common weight 
+#' est_sdid_cw <- sc_estimate(df_spain$Y, df_spain$N0, df_spain$T0, 
+#'                            porp_dat = TRUE, method = "sdid")
+#' sum_est <- summary(est_sdid_cw,fast = T) # fast = TRUE, Jackknife SE 
+#' est_sdid_cw
 #'
 #' @keywords internal
 "_PACKAGE"

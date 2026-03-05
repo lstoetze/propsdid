@@ -30,41 +30,43 @@
 #'
 NULL
 
-#' PENN
-#'
-#' @docType data
-#' @name PENN
-#'
-#' @format A data frame with 3219 rows and 5 variables.
-#' \describe{
-#'   \item{country}{country}
-#'   \item{year}{year}
-#'   \item{log_gdp}{log_gdp}
-#'   \item{dem}{dem}
-#'   \item{educ}{educ}
-#' }
-#'
-#' @usage data(PENN)
-#'
-NULL
 
-#' CPS
+#' Spanish Elections and Just Transition Agreement Data
 #'
-#' @docType data
-#' @name CPS
+#' This dataset contains provincial-level electoral results from Spain,
+#' including treatment indicators associated with the “Just Transition Agreement.”
+#' It is based on Bolet, Green, and González-Eguino (2024) and extended to
+#' include vote share information for all major political parties.
 #'
-#' @format A data frame with 2000 rows and 8 variables.
+#' Each row corresponds to a province–election–party combination, reporting
+#' the vote share obtained by that party. The treatment variable indicates
+#' whether a province was part of the Just Transition Agreement.
+#'
+#' @format A data frame with variables:
 #' \describe{
-#'   \item{state}{state}
-#'   \item{year}{year}
-#'   \item{log_wage}{log_wage}
-#'   \item{hours}{hours}
-#'   \item{urate}{urate}
-#'   \item{min_wage}{min_wage}
-#'   \item{open_carry}{open_carry}
-#'   \item{abort_ban}{abort_ban}
+#'   \item{province}{Province identifier (character)}
+#'   \item{election}{Election year (integer)}
+#'   \item{treatment}{Treatment indicator: 1 = treated, 0 = control}
+#'   \item{party}{Political party name (character), e.g. PSOE, PP, Podemos, Cs, VOX, Others}
+#'   \item{votes}{Vote share for that party (numeric)}
 #' }
 #'
-#' @usage data(CPS)
+#' @source Bolet, D., F. Green, and M. González-Eguino. 2024.
+#' *How to Get Coal Country to Vote for Climate Policy: The Effect of a
+#' “Just Transition Agreement” on Spanish Election Results.*
+#' American Political Science Review 118(3): 1344–1359.
+#' Extended dataset including complete vote shares.
 #'
-NULL
+#' @usage data(spain)
+#'
+#' @examples
+#' \donttest{
+#' data("spain")
+#' head(spain)
+#' }
+#'
+"spain"
+
+
+
+
