@@ -106,9 +106,14 @@ synthdid_estimate <- function(Y, N0, T0, X = array(dim = c(dim(Y), 0)),
   return(estimate)
 }
 
-#' Computes the synthetic diff-in-diff estimate for an average treatment for mutlivariate outcome data effect on a treated block.
+#' Computes the Synthetic Difference‑in‑Differences and Synthethic Control estimator for 
+#' multivariate proportional outcomes when treatment occurs on a block.
 #'
-#' See 'Synthetic Difference in Differences for proportions' by Stoetzer and Bogatyrev.
+#' This function implements the common‑weights SDID estimator described in 
+#' Stoetzer and Bogatyrev, "Estimating Treatment Effects on Proportions with Synthetic Controls". 
+#' It constructs a synthetic control using a shared set of unit and time weights 
+#' across all outcomes, ensuring that the counterfactual respects the 
+#' compositional structure of the data.
 #' @param Y the observations 3d-array, with N observations, T Time-points, and K proportions.
 #' @param N0 the number of control units (N_co in the paper). Rows 1-N0 of Y correspond to the control units.
 #' @param T0 the number of pre-treatment time steps (T_pre in the paper). Columns 1-T0 of Y correspond to pre-treatment time steps.
@@ -217,22 +222,25 @@ synthdid_estimate_multivar <- function(Y, N0, T0,
   return(estimate)
 }
 
-
-
-
-#' Different synthetic control method estimator
-#' Takes all the same parameters, but by default, passes options to use the synthetic control estimator
-#' By default, this uses only 'infinitesimal' ridge regularization when estimating the weights.
+#' Estimates Synthetic Control models with common weights for multivariate 
+#' proportional outcomes.
+#'
+#' This function implements the common‑weights Synthetic Control estimator 
+#' introduced in *Estimating Treatment Effects on Proportions with Synthetic 
+#' Controls* (Stoetzer & Bogatyrev). It applies the standard SC setup but 
+#' enforces a shared set of unit and time weights across all outcomes, ensuring 
+#' that the counterfactual respects the compositional structure of the data.
+#'
 #' @param Y the observation matrix.
 #' @param N0 the number of control units. Rows 1-N0 of Y correspond to the control units.
 #' @param T0 the number of pre-treatment time steps. Columns 1-T0 of Y correspond to pre-treatment time steps.
 #' @param method specifies what method should be used: sdid (synthetic difference in difference), sc (synthetic control), or did (difference in difference)
-#' @param eta.omega determines the level of ridge regularization, zeta.omega = eta.omega * noise.level, as in synthdid_estimate.
+#' @param prop_dat specifies if outcome is multivariate (TRUE default) or univariate (FALSE)
 #' @param ... additional options for synthdid_estimate
 #' @return an object like that returned by synthdid_estimate
 #' @export sc_estimate
 sc_estimate = function(Y, N0, T0,
-                       method="did",porp_dat = FALSE,...) {
+                       method="did",porp_dat = TRUE,...) {
 
   if (!method %in% c('did', 'sc', "sdid")) { stop('weight.type must be "sdid", "sc", or "did"') }
 
