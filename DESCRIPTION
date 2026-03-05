@@ -1,9 +1,9 @@
 Package: propsdid
-Title: Synthetic Control Methods for Proportions
-Version: 0.0.0.9000
+Title: Estimating Treatment Effects on Proportions with Synthetic Controls
+Version: 0.0.1
 Authors@R: c(person("Lukas", "Stoetzer", email = "lukas.stoetzer@uni-wh.de", role = c("aut", "cre")),
     person("Konstantin", "Bogatyrev", email = "konstantin.bogatyrev@phd.unibocconi.it", role = "aut"))
-Description: Estends estimation methods of Synthetic Difference-in-Difference Arkhangelsky et al. to proportional data
+Description: Extends estimation methods of Synthetic Difference-in-Difference Arkhangelsky et al. to proportional data
 Depends:
     R (>= 3.4)
 Imports:
