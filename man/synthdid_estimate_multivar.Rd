@@ -2,7 +2,8 @@
 % Please edit documentation in R/synthdid.R
 \name{synthdid_estimate_multivar}
 \alias{synthdid_estimate_multivar}
-\title{Computes the synthetic diff-in-diff estimate for an average treatment for mutlivariate outcome data effect on a treated block.}
+\title{Computes the Synthetic Difference‑in‑Differences and Synthethic Control estimator for
+multivariate proportional outcomes when treatment occurs on a block.}
 \usage{
 synthdid_estimate_multivar(
   Y,
@@ -74,5 +75,9 @@ as well as regression coefficients beta if X is passed.
 'setup' is a list describing the problem passed in: Y, N0, T0, X.
 }
 \description{
-See 'Synthetic Difference in Differences for proportions' by Stoetzer and Bogatyrev.
+This function implements the common‑weights SDID estimator described in
+Stoetzer and Bogatyrev, "Estimating Treatment Effects on Proportions with Synthetic Controls".
+It constructs a synthetic control using a shared set of unit and time weights
+across all outcomes, ensuring that the counterfactual respects the
+compositional structure of the data.
 }

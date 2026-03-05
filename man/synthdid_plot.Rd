@@ -18,6 +18,8 @@ synthdid_plot(
   facet.vertical = TRUE,
   lambda.comparable = !is.null(facet),
   overlay = 0,
+  show.lambda = FALSE,
+  estimates.label = NULL,
   lambda.plot.scale = 3,
   trajectory.linetype = 1,
   effect.curvature = 0.3,
@@ -67,6 +69,10 @@ With intercept of almost one, this makes it easier to assess parallel-ness by ma
 With intercept of one, this essentially overlays the curves, and plotting a diagram is suppressed as in the case of a SC estimate.
 To use different values for different plots, pass these values as an attribute 'overlay' of each estimate.
 If a vector is passed, plots at different intercept levels indicated by the 'frame' aesthetic. ggplotly will interpret this as an animation.}
+
+\item{show.lambda}{Should lambda estimates be shown as a ribbion on the y-axis. Default is FALSE}
+
+\item{estimates.label}{provide labels for the estimates as vector. These will be shown in the facets.}
 
 \item{lambda.plot.scale}{determines the scale of the plot of the weights lambda.}
 

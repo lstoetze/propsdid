@@ -2,11 +2,10 @@
 % Please edit documentation in R/synthdid.R
 \name{sc_estimate}
 \alias{sc_estimate}
-\title{synthdid_estimate for synthetic control estimates.
-Takes all the same parameters, but by default, passes options to use the synthetic control estimator
-By default, this uses only 'infinitesimal' ridge regularization when estimating the weights.}
+\title{Estimates Synthetic Control models with common weights for multivariate
+proportional outcomes.}
 \usage{
-sc_estimate(Y, N0, T0, eta.omega = 1e-06, porp_dat = FALSE, ...)
+sc_estimate(Y, N0, T0, method = "did", porp_dat = TRUE, ...)
 }
 \arguments{
 \item{Y}{the observation matrix.}
@@ -15,15 +14,19 @@ sc_estimate(Y, N0, T0, eta.omega = 1e-06, porp_dat = FALSE, ...)
 
 \item{T0}{the number of pre-treatment time steps. Columns 1-T0 of Y correspond to pre-treatment time steps.}
 
-\item{eta.omega}{determines the level of ridge regularization, zeta.omega = eta.omega * noise.level, as in synthdid_estimate.}
+\item{method}{specifies what method should be used: sdid (synthetic difference in difference), sc (synthetic control), or did (difference in difference)}
 
 \item{...}{additional options for synthdid_estimate}
+
+\item{prop_dat}{specifies if outcome is multivariate (TRUE default) or univariate (FALSE)}
 }
 \value{
 an object like that returned by synthdid_estimate
 }
 \description{
-synthdid_estimate for synthetic control estimates.
-Takes all the same parameters, but by default, passes options to use the synthetic control estimator
-By default, this uses only 'infinitesimal' ridge regularization when estimating the weights.
+This function implements the common‑weights Synthetic Control estimator
+introduced in \emph{Estimating Treatment Effects on Proportions with Synthetic
+Controls} (Stoetzer & Bogatyrev). It applies the standard SC setup but
+enforces a shared set of unit and time weights across all outcomes, ensuring
+that the counterfactual respects the compositional structure of the data.
 }

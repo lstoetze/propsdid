@@ -7,6 +7,8 @@ The table is truncated to exclude synthetic controls that do not matter for any 
 for each estimate, the truncated controls may have total weight no larger that 1-mass.}
 \usage{
 synthdid_controls(estimates, sort.by = 1, mass = 0.9, weight.type = "omega")
+
+synthdid_controls(estimates, sort.by = 1, mass = 0.9, weight.type = "omega")
 }
 \arguments{
 \item{estimates, }{a list of estimates output by synthdid_estimate. Or a single estimate.}
@@ -18,6 +20,10 @@ synthdid_controls(estimates, sort.by = 1, mass = 0.9, weight.type = "omega")
 \item{weight.type, }{'omega' for units, 'lambda' for time periods}
 }
 \description{
+Outputs a table of important synthetic controls and their corresponding weights, sorted by weight.
+The table is truncated to exclude synthetic controls that do not matter for any estimate ---
+for each estimate, the truncated controls may have total weight no larger that 1-mass.
+
 Outputs a table of important synthetic controls and their corresponding weights, sorted by weight.
 The table is truncated to exclude synthetic controls that do not matter for any estimate ---
 for each estimate, the truncated controls may have total weight no larger that 1-mass.
